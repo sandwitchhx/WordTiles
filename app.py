@@ -1,42 +1,63 @@
 import streamlit as st
 import random
 
-st.set_page_config(page_title="Memory Card Game", layout="centered")
-st.title("🃏 Memory Card Game")
+st.set_page_config(page_title="Word Unscramble Game", layout="centered")
+st.title("📝 Word Unscramble Game")
+st.markdown("Try to unscramble the word! 🍎🍌🍇🍊")
+
+# Word list
+words = ["apple", "banana", "grape", "orange", "strawberry", "cherry", "pineapple", "kiwi"]
+
+# Maximum number of tries per word
+MAX_TRIES = 3
 
 # Initialize session state
-if 'cards' not in st.session_state:
-    emojis = ["🍎","🍌","🍇","🍉","🍓","🍒","🥝","🍍"]
-    st.session_state.cards = emojis*2
-    random.shuffle(st.session_state.cards)
-    st.session_state.flipped = [False]*16
-    st.session_state.first_card = None
-    st.session_state.matches = 0
+if 'score' not in st.session_state:
+    st.session_state.score = 0
+if 'tries' not in st.session_state:
+    st.session_state.tries = 0
+if 'current_word' not in st.session_state:
+    st.session_state.current_word = random.choice(words)
+if 'scrambled' not in st.session_state:
+    word = st.session_state.current_word
+    st.session_state.scrambled = ''.join(random.sample(word, len(word)))
 
-def flip_card(index):
-    if st.session_state.flipped[index]:
-        return
-    st.session_state.flipped[index] = True
+# Display scrambled word
+st.subheader("🔀 Unscramble this word:")
+st.markdown(f"### {st.session_state.scrambled}")
 
-    if st.session_state.first_card is None:
-        st.session_state.first_card = index
+# User input
+user_guess = st.text_input("Your guess:")
+
+if st.button("Submit"):
+    st.session_state.tries += 1
+    if user_guess.lower() == st.session_state.current_word:
+        st.session_state.score += 1
+        st.success(f"🎉 Correct! Your score: {st.session_state.score}")
+        # Reset for next word
+        st.session_state.current_word = random.choice(words)
+        st.session_state.scrambled = ''.join(random.sample(st.session_state.current_word, len(st.session_state.current_word)))
+        st.session_state.tries = 0
+        st.experimental_rerun()
     else:
-        # Check match
-        if st.session_state.cards[st.session_state.first_card] != st.session_state.cards[index]:
-            # No match: flip back after next rerun
-            st.session_state.flipped[st.session_state.first_card] = False
-            st.session_state.flipped[index] = False
+        remaining = MAX_TRIES - st.session_state.tries
+        if remaining > 0:
+            st.warning(f"❌ Wrong! Try again. Remaining attempts: {remaining}")
         else:
-            st.session_state.matches += 1
-        st.session_state.first_card = None
+            st.error(f"💥 Out of tries! The word was: **{st.session_state.current_word}**")
+            # Reset for next word
+            st.session_state.current_word = random.choice(words)
+            st.session_state.scrambled = ''.join(random.sample(st.session_state.current_word, len(st.session_state.current_word)))
+            st.session_state.tries = 0
+            st.experimental_rerun()
 
-# Display cards as buttons
-cols = st.columns(4)
-for i in range(16):
-    with cols[i%4]:
-        if st.button(st.session_state.cards[i] if st.session_state.flipped[i] else "❓", key=i):
-            flip_card(i)
+# Display current score
+st.markdown(f"**Score:** {st.session_state.score}")
 
-# Win message
-if st.session_state.matches == 8:
-    st.success("🎉 You matched all pairs!")
+# Restart button
+if st.button("🔄 Restart Game"):
+    st.session_state.score = 0
+    st.session_state.tries = 0
+    st.session_state.current_word = random.choice(words)
+    st.session_state.scrambled = ''.join(random.sample(st.session_state.current_word, len(st.session_state.current_word)))
+    st.experimental_rerun()
